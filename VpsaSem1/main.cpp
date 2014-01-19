@@ -242,12 +242,18 @@ void disp(void){
 	//lastTime = omp_get_wtime();
 	double dispTime =  omp_get_wtime();
 
-	int** ary = new int*[(viewport.xvmax - viewport.xvmin)];
-	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); ++i)
-		ary[i] = new int[(viewport.yvmax - viewport.yvmin)];
+	GLfloat*** ary = new GLfloat**[(viewport.xvmax - viewport.xvmin)];
+	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); ++i){
+		ary[i] = new GLfloat*[(viewport.yvmax - viewport.yvmin)];
+		for (int k = 0; k < (viewport.yvmax - viewport.yvmin); k++)
+		{
+			ary[i][k]= new GLfloat[4];
+		}
+	}
 	// RAY TRACING:
 #pragma omp parallel for
 	for (int i=0; i<(viewport.xvmax - viewport.xvmin); i++){
+	//	cout<< omp_get_thread_num();
 
 		for (int j=0; j<(viewport.yvmax - viewport.yvmin); j++){
 			int intersection_object = -1; // none
@@ -329,20 +335,30 @@ void disp(void){
 						sphere[intersection_object].kd_rgb[CBLUE], sphere[intersection_object].ks_rgb[CBLUE], sphere[intersection_object].ka_rgb[CBLUE], sphere[intersection_object].shininess,
 						light_intensity, ambi_light_intensity);
 				}
-				glColor3f(red, green, blue);
+				ary[i][j][0]=red;
+				ary[i][j][1]=green;
+				ary[i][j][2]=blue;
+				ary[i][j][3]= omp_get_thread_num()==0?0.0:1.0 ;
+
+				/*	glColor3f(red, green, blue);
 				glBegin(GL_POINTS);
 				glVertex2i(i, j);
-				glEnd();
+				glEnd();*/
 				intersection_object = -1;
 				bShadow = false;
 			}
 			else
 			{
+				ary[i][j][0]=0.0;
+				ary[i][j][1]=0.0;
+				ary[i][j][2]=0.0;
+				ary[i][j][3]= omp_get_thread_num()==0?0.0:1.0 ;
+
 				// draw the pixel with the background color 
-				glColor3f(0.0, 0.0, 0.0);
+				/*	glColor3f(0.0, 0.0, 0.0);
 				glBegin(GL_POINTS);
 				glVertex2i(i, j);
-				glEnd();
+				glEnd();*/
 				intersection_object = -1;
 				bShadow = false;
 			}
@@ -350,22 +366,43 @@ void disp(void){
 			current_reflected_lambda = 0x7fefffffffffffff;
 		}
 	}
+	cout  << FrameCount << ";" << "Para;" << fixed << (omp_get_wtime()-dispTime)  <<" \n"; //<< setprecision(4)c
+	int t1,t2 = 0;
+	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); i++)
+	{
+		for(int j = 0; j < (viewport.yvmax - viewport.yvmin); j++)
+		{
+			ary[i][j][3] == 0.0?t1++:t2++;
+			glColor3f(ary[i][j][0], ary[i][j][1], ary[i][j][2]);
+			glBegin(GL_POINTS);
+			glVertex2i(i, j);
+			glEnd();
+		}
+	}
 
 	cout.precision(15);
 	auto r=(omp_get_wtime()-dispTime);
 	cout  << FrameCount << ";" << "DispTime;" << fixed << r  <<" \n"; //<< setprecision(4)c
+	cout.flush();
 	//glFlush();
 	glutSwapBuffers();
 
 
-	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); ++i)
-		free(ary[i]);
-	free(ary);
+	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); i++)
+	{
+		for(int j = 0; j < (viewport.yvmax - viewport.yvmin); j++)
+		{
+			delete [] ary[i][j];
+		}
+		delete [] ary[i];
+	}
+	delete [] ary;
 
 }
 
 
 int main (int argc, char** argv) {
+
 	freopen( "C:\\Users\\Bostjan\\Documents\\file.csv", "w", stdout );
 	cout << "Frame;CodeSection;Time\n";
 	glutInit (&argc, argv);
