@@ -226,6 +226,7 @@ void animate(void){
 	//light.z -= 100;
 
 }
+GLfloat*** ary;
 
 int FrameCount = 0;
 void disp(void){
@@ -242,18 +243,11 @@ void disp(void){
 	//lastTime = omp_get_wtime();
 	double dispTime =  omp_get_wtime();
 
-	GLfloat*** ary = new GLfloat**[(viewport.xvmax - viewport.xvmin)];
-	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); ++i){
-		ary[i] = new GLfloat*[(viewport.yvmax - viewport.yvmin)];
-		for (int k = 0; k < (viewport.yvmax - viewport.yvmin); k++)
-		{
-			ary[i][k]= new GLfloat[3];
-		}
-	}
+
 	// RAY TRACING:
 #pragma omp parallel for
 	for (int i=0; i<(viewport.xvmax - viewport.xvmin); i++){
-	//	cout<< omp_get_thread_num();
+		//	cout<< omp_get_thread_num();
 		for (int j=0; j<(viewport.yvmax - viewport.yvmin); j++){
 			int intersection_object = -1; // none
 			int reflected_intersection_object = -1; // none
@@ -337,7 +331,7 @@ void disp(void){
 				ary[i][j][0]=red;
 				ary[i][j][1]=green;
 				ary[i][j][2]=blue;
-			//	ary[i][j][3]= omp_get_thread_num()==0?0.0:1.0 ;
+				//	ary[i][j][3]= omp_get_thread_num()==0?0.0:1.0 ;
 
 				/*	glColor3f(red, green, blue);
 				glBegin(GL_POINTS);
@@ -351,7 +345,7 @@ void disp(void){
 				ary[i][j][0]=0.0;
 				ary[i][j][1]=0.0;
 				ary[i][j][2]=0.0;
-			//	ary[i][j][3]= omp_get_thread_num()==0?0.0:1.0 ;
+				//	ary[i][j][3]= omp_get_thread_num()==0?0.0:1.0 ;
 
 				// draw the pixel with the background color 
 				/*	glColor3f(0.0, 0.0, 0.0);
@@ -371,7 +365,7 @@ void disp(void){
 	{
 		for(int j = 0; j < (viewport.yvmax - viewport.yvmin); j++)
 		{
-		//	ary[i][j][3] == 0.0?t1++:t2++;
+			//	ary[i][j][3] == 0.0?t1++:t2++;
 			glColor3f(ary[i][j][0], ary[i][j][1], ary[i][j][2]);
 			glBegin(GL_POINTS);
 			glVertex2i(i, j);
@@ -387,6 +381,22 @@ void disp(void){
 	glutSwapBuffers();
 
 
+
+
+}
+
+void InitPixArray()
+{
+	ary = new GLfloat**[(viewport.xvmax - viewport.xvmin)];
+	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); ++i){
+		ary[i] = new GLfloat*[(viewport.yvmax - viewport.yvmin)];
+		for (int k = 0; k < (viewport.yvmax - viewport.yvmin); k++)
+		{
+			ary[i][k]= new GLfloat[3];
+		}
+	}
+}
+void freePixArray(){
 	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); i++)
 	{
 		for(int j = 0; j < (viewport.yvmax - viewport.yvmin); j++)
@@ -396,7 +406,6 @@ void disp(void){
 		delete [] ary[i];
 	}
 	delete [] ary;
-
 }
 
 
@@ -415,13 +424,14 @@ int main (int argc, char** argv) {
 	win = glutCreateWindow("Basic Ray Tracer by Pa3cio, UL FRI");
 	// init opengl:
 	init();
+	InitPixArray();
 	// register callback function to display graphics:
 	glutDisplayFunc(disp);
 	// call Timer():
 	Timer(0);
 	// enter tha main loop and process events:
 	glutMainLoop();
-
+	freePixArray();
 	return 0;
 }
 
