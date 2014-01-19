@@ -242,7 +242,11 @@ void disp(void){
 	//lastTime = omp_get_wtime();
 	double dispTime =  omp_get_wtime();
 
+	int** ary = new int*[(viewport.xvmax - viewport.xvmin)];
+	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); ++i)
+		ary[i] = new int[(viewport.yvmax - viewport.yvmin)];
 	// RAY TRACING:
+#pragma omp parallel for
 	for (int i=0; i<(viewport.xvmax - viewport.xvmin); i++){
 
 		for (int j=0; j<(viewport.yvmax - viewport.yvmin); j++){
@@ -266,7 +270,6 @@ void disp(void){
 			// 1. compute ray:
 			compute_ray(&ray, &view_point, &viewport, &pixel, &camera_frame, focal_distance);
 
-			double lastTime = omp_get_wtime();
 			// 2. check if ray hits an object:
 			for (int k=0; k<NSPHERES; k++)
 			{
@@ -287,18 +290,14 @@ void disp(void){
 					// kopiraj strukturu presjeka : copy_intersection_struct();
 				}
 			}
-			cout  << FrameCount << ";" << "RayObjectColision;" << (lastTime - omp_get_wtime()) <<" \n"; //<< setprecision(4)c
 
 
-			cout  << FrameCount << ";" << "DispTimeBeforeColorAndOpenGl;" << (dispTime - omp_get_wtime()) <<" \n"; //<< setprecision(4)c
 
 			// Compute the color of the pixel:
 			if (intersection_object > -1)
 			{
 				compute_shadow_ray(&shadow_ray, &intersection, &light);
 				theta = dotproduct(&(shadow_ray.direction), &(intersection.normal));
-
-				lastTime = omp_get_wtime();
 
 
 				for (int l=0; l<NSPHERES; l++)
@@ -309,8 +308,6 @@ void disp(void){
 							bShadow=true;
 					}
 				}
-
-				cout  << FrameCount << ";" << "PixelColor;" << (lastTime - omp_get_wtime()) <<" \n"; //<< setprecision(4)c
 
 
 				if (bShadow)
@@ -353,9 +350,18 @@ void disp(void){
 			current_reflected_lambda = 0x7fefffffffffffff;
 		}
 	}
-	cout  << FrameCount << ";" << "DispTime;" << (dispTime - omp_get_wtime()) <<" \n"; //<< setprecision(4)c
+
+	cout.precision(15);
+	auto r=(omp_get_wtime()-dispTime);
+	cout  << FrameCount << ";" << "DispTime;" << fixed << r  <<" \n"; //<< setprecision(4)c
 	//glFlush();
 	glutSwapBuffers();
+
+
+	for(int i = 0; i < (viewport.xvmax - viewport.xvmin); ++i)
+		free(ary[i]);
+	free(ary);
+
 }
 
 
